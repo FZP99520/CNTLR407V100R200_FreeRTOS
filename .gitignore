@@ -1,7 +1,8 @@
 # Prerequisites
 *.d
-./Object/*.axf
+*.axf
 *.txt
+*.sct
 # add for project file
 *.crf
 *.d
