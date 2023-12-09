@@ -58,7 +58,7 @@ ST_ANO_DT_FRAME_LIST stAnoDtFrameList;
 #if (ANO_DT_MODE_IS_MASTER)
 ST_ANO_DT_FRAME_LIST_ITEM astAnoDtFrameListItem[] =
 {
-    {E_ANO_DT_FUNC_M2S_TYPE_RCDATA, TRUE, TRUE, &stAnoDtDataM2SRcdata, sizeof(ST_ANO_DT_DATA_M2S_RCDATA), NULL, NULL},
+    {E_ANO_DT_FUNC_M2S_TYPE_RCDATA, TRUE, FALSE, &stAnoDtDataM2SRcdata, sizeof(ST_ANO_DT_DATA_M2S_RCDATA), NULL, NULL},
 #if (ANO_DT_SUPPORT_FOC)
     {E_ANO_DT_FUNC_M2S_TYPE_FOC_INPUT_CTRL, TRUE, TRUE, &stAnoDtDataM2SFocInputCtrl, sizeof(ST_ANO_DT_DATA_M2S_FOC_INPUT_CTRL), NULL, NULL}
 #endif
@@ -485,7 +485,6 @@ static void _ANO_DT_Master_Send_Timer_Callback(TimerHandle_t hTimer)
         }
     }    
 }
-
 
 void ANO_DT_Master_Send_Task(void * pvParameters)
 {

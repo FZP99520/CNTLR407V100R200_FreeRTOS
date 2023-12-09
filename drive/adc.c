@@ -181,9 +181,9 @@ void ADC_Data_Handle(void)
         return;
     //put forward and right is positive
     //for left encoder Y axis
-    af32AdcOutput[0] = -((float)au16AdcConvertVal[0] - au16AdcConvertValOffset[0])*3.3f/4095;
+    af32AdcOutput[0] = -((float)au16AdcConvertVal[0] - au16AdcConvertValOffset[0])*2.0f/4095;//+-1
     //for left encoder X axis
-    af32AdcOutput[1] = -((float)au16AdcConvertVal[1] - au16AdcConvertValOffset[1])*3.3f/4095;
+    af32AdcOutput[1] = -((float)au16AdcConvertVal[1] - au16AdcConvertValOffset[1])*2.0f/4095;
     //for right encoder Y axis
     af32AdcOutput[2] = -((float)au16AdcConvertVal[2] - au16AdcConvertValOffset[2])*3.3f/4095;
     //for right encoder X axis
@@ -196,10 +196,11 @@ void ADC_Data_Handle(void)
     stAnoDtDataS2MPower.u16Votage = af32AdcOutput[0]*10000;
     stAnoDtDataS2MRcdata.s16THR = af32AdcOutput[0]*100;
 
-    stAnoDtDataM2SFocInputCtrl.s16Angle = au16AdcConvertVal[0]*100;
-    stAnoDtDataM2SFocInputCtrl.s16Omega = au16AdcConvertVal[1]*100;
-    stAnoDtDataM2SFocInputCtrl.s16I_d = au16AdcConvertVal[2]*100;
-    stAnoDtDataM2SFocInputCtrl.s16I_q = au16AdcConvertVal[3]*100;
+    stAnoDtDataM2SFocInputCtrl.u8lock_mode = 1;
+    stAnoDtDataM2SFocInputCtrl.s16Angle = af32AdcOutput[0]*180.0f*100.0f;
+    stAnoDtDataM2SFocInputCtrl.s16Omega = af32AdcOutput[1]*360.0f*10.0f;
+    //stAnoDtDataM2SFocInputCtrl.s16I_d = au16AdcConvertVal[2]*100;
+    //stAnoDtDataM2SFocInputCtrl.s16I_q = au16AdcConvertVal[3]*100;
 }
 
 float *ADC_Get_Output(void)

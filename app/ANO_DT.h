@@ -325,7 +325,7 @@ typedef struct //__attribute__((packed))
 typedef struct //__attribute__((packed))
 {
     s16 s16Angle;//*100
-    s16 s16Omega;//*100
+    s16 s16Omega;//*10
     s16 s16I_d;//*100
     s16 s16I_q;//*100
     u8  u8lock_mode;
