@@ -113,23 +113,24 @@ void Start_Task(void * pvParameters)
 #if (USART1_ENABLE == 1)
     hUSART1_TX_Queue    = FR_OS_QueueCreate(3, sizeof(ST_USART_DATA));
     hUSART1_RX_Queue    = FR_OS_QueueCreate(3, sizeof(ST_USART_DATA));
-    hUSART1_TxSemBinary = xSemaphoreCreateBinary();
-    xSemaphoreGive(hUSART1_TxSemBinary);
+    hUSART1_TxSemBinary = FR_OS_SemBinaryCreate();
+    FR_OS_SemBinaryGive(hUSART1_TxSemBinary);
 #endif
-
+    
 #if (USART2_ENABLE == 1)
     hUSART2_TX_Queue    = FR_OS_QueueCreate(3, sizeof(ST_USART_DATA));
     hUSART2_RX_Queue    = FR_OS_QueueCreate(3, sizeof(ST_USART_DATA));
-    hUSART2_TxSemBinary = xSemaphoreCreateBinary();
-    xSemaphoreGive(hUSART2_TxSemBinary);
+    hUSART2_TxSemBinary = FR_OS_SemBinaryCreate();
+    FR_OS_SemBinaryGive(hUSART2_TxSemBinary);
 #endif
-
+    
 #if (USART3_ENABLE == 1)
     hUSART3_TX_Queue    = FR_OS_QueueCreate(3, sizeof(ST_USART_DATA));
     hUSART3_RX_Queue    = FR_OS_QueueCreate(3, sizeof(ST_USART_DATA));
-    hUSART3_TxSemBinary = xSemaphoreCreateBinary();
-    xSemaphoreGive(hUSART3_TxSemBinary);
+    hUSART3_TxSemBinary = FR_OS_SemBinaryCreate();
+    FR_OS_SemBinaryGive(hUSART3_TxSemBinary);
 #endif
+
 
     hI2C1_Queue         = FR_OS_QueueCreate(3, sizeof(ST_I2C_Params_t));
     /*Create Semaphore */
