@@ -86,9 +86,9 @@ int main()
     lv_log_register_print_cb(debug);
 
     //lv_demo_keypad_encoder();
-    custom_init(&guider_ui);
-    setup_ui(&guider_ui);
-    events_init(&guider_ui);
+    //custom_init(&guider_ui);
+    //setup_ui(&guider_ui);
+    //events_init(&guider_ui);
 
     SysTick_Init(168);
 
@@ -251,7 +251,7 @@ void Start_Task(void * pvParameters)
     stTaskCreateParams.usStackDepth = 128;
     stTaskCreateParams.pvParameters = NULL;
     stTaskCreateParams.uxPriority = 4;
-    FR_OS_TaskCreate(&hDisplayTask, stTaskCreateParams);
+    //FR_OS_TaskCreate(&hDisplayTask, stTaskCreateParams);
 
 //    stTaskCreateParams.TaskCode = I2C1_DataHandle_Task;
 //    stTaskCreateParams.pcName = "i2c1_task";
@@ -271,8 +271,8 @@ void Disp_Task(void * pvParameters)
     BaseType_t xRet = pdFAIL;
 
     FR_OS_MUTEX_LOCK(hDispMutex);
-    //Custom_UI_Demo();
-    //Customer_Top_Layer();
+    Custom_UI_Demo();
+    Customer_Top_Layer();
     //setup_scr_src_main(&guider_ui);
     FR_OS_MUTEX_UNLOCK(hDispMutex);
     

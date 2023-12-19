@@ -517,7 +517,7 @@ void Custom_UI_Demo(void)
     //lv_obj_center(arc);
 
     //lv_group_add_obj(g, arc);
-#if 1
+#if 0
     lv_obj_t * meter = lv_meter_create(lv_scr_act());
     lv_obj_set_size(meter, 240, 240);
     lv_meter_scale_t * meter_scale = lv_meter_add_scale(meter);
