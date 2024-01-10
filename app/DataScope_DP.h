@@ -10,7 +10,7 @@
 #include "stm32f4xx.h"
 
 
-#define DataScope_SendData(pu8Data,u8len)   USART1_SendData(pu8Data,u8len)
+#define DataScope_SendData(pu8Data,u8len)   //USART1_SendData(pu8Data,u8len)
 
 
 extern TaskHandle_t hDataScope_Task;

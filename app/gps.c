@@ -6,11 +6,77 @@
 #include "stdarg.h"	 
 #include "string.h"	 
 #include "math.h"
-u8 gps_buff[128];
-nmea_msg gps_data;
-void GPS_Init(void)
+#include "dispout.h"
+
+
+#define GPS_SendData(pu8data, u8len)  USART1_SendData(pu8data, u8len)
+#define GPS_USART_INIT(u32Baudrate)   USART1_Init(u32Baudrate)
+
+u8 pu8GpsMsgBuff[GPS_MESSAGE_BUFF_SIZE];;
+nmea_msg gps_data = {0};
+
+
+TaskHandle_t hGps_Task = NULL;
+
+
+void Gps_Task(void * pvParameters)
 {
-	Ublox_Cfg_Prt(115200);//Set Baudrate
+    BaseType_t xReturn;
+    u32 u32Baudrate = 115200;
+    u32 NotificationValue = 0;
+    u16 u16BuffSize = 256;
+    u8 *pu8StrBuff = NULL;
+    u8 u8temp;
+
+    FR_OS_DelayMs(200);
+    pu8StrBuff = pvPortMalloc(u16BuffSize);
+    if(pu8StrBuff == NULL)
+    {
+        return;
+    }
+    dispout_gui_disp_add_text((const char *)"[GPS] Module initilating...\n");
+    FR_OS_DelayMs(200);
+    //u8temp = Ublox_Cfg_Msg(0x04, 1);
+    //snprintf(pu8StrBuff, u16BuffSize,"[GPS]set port cfg msg result: (%d)\n", u8temp);
+    //dispout_gui_disp_add_text((const char *)pu8StrBuff);
+    //u8temp = Ublox_Cfg_Prt(u32Baudrate);
+    //snprintf(pu8StrBuff, u16BuffSize,"[GPS]set gps usart baudrate %d !!!", u32Baudrate);
+    //dispout_gui_disp_add_text((const char *)pu8StrBuff);
+    FR_OS_DelayMs(2000);
+    while(pdTRUE)
+    {
+        xReturn = xTaskNotifyWait(0, 0xFFFFFFFF, &NotificationValue, portMAX_DELAY);
+        if((xReturn == pdTRUE)&&(NotificationValue))
+        {
+            memset(pu8StrBuff, 0, u16BuffSize);
+            dispout_gui_disp_set_text((const char *)pu8StrBuff);
+            FR_OS_DelayMs(100);
+            GPS_Analysis(&gps_data, pu8GpsMsgBuff);
+            /*
+            snprintf(pu8StrBuff, u16BuffSize, "gpssta:%d\nfixmode:%d svnum:%d posslnum:%d\nutc:%02d-%02d-%02d\nlatiude:%d(%c)\nlongitude:%d(%c)\naltitude:%d\nspeed:%d\nspeed_angle:%d\n",
+                                                                    gps_data.gpssta,
+                                                                    gps_data.fixmode,
+                                                                    gps_data.svnum,
+                                                                    gps_data.posslnum,
+                                                                    gps_data.utc.hour+8,
+                                                                    gps_data.utc.min,
+                                                                    gps_data.utc.sec,
+                                                                    gps_data.latitude,
+                                                                    gps_data.nshemi,
+                                                                    gps_data.longitude,
+                                                                    gps_data.ewhemi,
+                                                                    gps_data.altitude,
+                                                                    gps_data.speed,
+                                                                    gps_data.speed_angle);
+            dispout_gui_disp_set_text((const char *)pu8StrBuff);*/
+            dispout_gui_disp_set_text((const char *)pu8GpsMsgBuff);
+        }
+    }
+}
+
+u8 GPS_Init(void)
+{
+	return Ublox_Cfg_Prt(115200);//Set Baudrate
 }
 //从buf里面得到第cx个逗号所在的位置
 //返回值:0~0XFE,代表逗号所在位置的偏移.
@@ -231,7 +297,7 @@ void GPS_Analysis(nmea_msg *gpsx,u8 *buf)
 	NMEA_GPRMC_Analysis(gpsx,buf);	//GPRMC解析
 	NMEA_GPVTG_Analysis(gpsx,buf);	//GPVTG解析
 }
-
+#if 1
 //GPS校验和计算
 //buf:数据缓存区首地址
 //len:数据长度
@@ -256,20 +322,20 @@ u8 Ublox_Cfg_Ack_Check(void)
 {			 
 	u16 len=0,i;
 	u8 rval=0;
-	//while(gps.rx_ok==0 && len<100)//等待接收到应答   
+	while(gps_data.u8rx_ok==0 && len<100)//等待接收到应答   
 	{
 		len++;
 		Delay_ms(5);
 	}		 
 	if(len<250)   	//超时错误.
 	{
-		//len=gps.len;	//此次接收到的数据长度 
-		for(i=0;i<len;i++)if(USART2_RX_Buff[i]==0XB5)break;//查找同步字符 0XB5
+		len = gps_data.u8rx_len;	//此次接收到的数据长度
+		for(i=0;i<len;i++)if(pu8GpsMsgBuff[i]==0XB5)break;//查找同步字符 0XB5
 		if(i==len)rval=2;						//没有找到同步字符
-		//else if(USART2_RX_Buff[i+3]==0X00)rval=3;//接收到NACK应答
+		else if(pu8GpsMsgBuff[i+3]==0X00)rval=3;//接收到NACK应答
 		else rval=0;	   						//接收到ACK应答
 	}else rval=1;								//接收超时错误
-    //gps.rx_ok=0;							//清除接收
+    gps_data.u8rx_ok=0;							//清除接收
 	return rval;  
 }
 //配置保存
@@ -278,7 +344,14 @@ u8 Ublox_Cfg_Ack_Check(void)
 u8 Ublox_Cfg_Cfg_Save(void)
 {
 	u8 i;
-	_ublox_cfg_cfg *cfg_cfg=(_ublox_cfg_cfg *)USART2_TX_Buff;
+	void *vBuff = NULL;
+	vBuff = pvPortMalloc(sizeof(_ublox_cfg_cfg));
+	if(vBuff == NULL)
+	{
+	    return 0;
+	}
+	//_ublox_cfg_msg *cfg_msg=(_ublox_cfg_msg *)USART2_TX_Buff;
+	_ublox_cfg_cfg *cfg_cfg=(_ublox_cfg_cfg *)vBuff;
 	cfg_cfg->header=0X62B5;		//cfg header
 	cfg_cfg->id=0X0906;			//cfg cfg id
 	cfg_cfg->dlength=13;		//数据区长度为13个字节.		 
@@ -288,7 +361,12 @@ u8 Ublox_Cfg_Cfg_Save(void)
 	cfg_cfg->devicemask=4; 		//保存在EEPROM里面		 
 	Ublox_CheckSum((u8*)(&cfg_cfg->id),sizeof(_ublox_cfg_cfg)-4,&cfg_cfg->cka,&cfg_cfg->ckb);
 	//while(DMA1_Channel7->CNDTR!=0);	//等待通道7传输完成   
-	USART2_SendData(USART2_TX_Buff,sizeof(_ublox_cfg_cfg));	//通过dma发送出去
+	GPS_SendData(vBuff, sizeof(_ublox_cfg_cfg));	//通过dma发送出去
+	if(vBuff != NULL)
+	{
+	    vPortFree(vBuff);
+	    vBuff = NULL;
+	}
 	for(i=0;i<6;i++)if(Ublox_Cfg_Ack_Check()==0)break;		//EEPROM写入需要比较久时间,所以连续判断多次
 	return i==6?1:0;
 }
@@ -302,7 +380,14 @@ u8 Ublox_Cfg_Cfg_Save(void)
 //返回值:0,执行成功;其他,执行失败.
 u8 Ublox_Cfg_Msg(u8 msgid,u8 uart1set)
 {
-	_ublox_cfg_msg *cfg_msg=(_ublox_cfg_msg *)USART2_TX_Buff;
+    void *vBuff = NULL;
+    vBuff = pvPortMalloc(sizeof(_ublox_cfg_msg));
+    if(vBuff == NULL)
+	{
+	    return 0;
+	}
+	//_ublox_cfg_msg *cfg_msg=(_ublox_cfg_msg *)USART2_TX_Buff;
+	_ublox_cfg_msg *cfg_msg = (_ublox_cfg_msg *)vBuff;
 	cfg_msg->header=0X62B5;		//cfg header
 	cfg_msg->id=0X0106;			//cfg msg id
 	cfg_msg->dlength=8;			//数据区长度为8个字节.	
@@ -316,7 +401,12 @@ u8 Ublox_Cfg_Msg(u8 msgid,u8 uart1set)
 	cfg_msg->ncset=1; 			//默认开启	  
 	Ublox_CheckSum((u8*)(&cfg_msg->id),sizeof(_ublox_cfg_msg)-4,&cfg_msg->cka,&cfg_msg->ckb);
 	//while(DMA1_Channel7->CNDTR!=0);	//等待通道7传输完成   
-	USART2_SendData(USART2_TX_Buff,sizeof(_ublox_cfg_msg));	//通过dma发送出去
+	GPS_SendData(vBuff, sizeof(_ublox_cfg_msg));	//通过dma发送出去
+	if(vBuff != NULL)
+	{
+	    vPortFree(vBuff);
+	    vBuff = NULL;
+	}
 	return Ublox_Cfg_Ack_Check();
 }
 //配置NMEA输出信息格式
@@ -324,7 +414,13 @@ u8 Ublox_Cfg_Msg(u8 msgid,u8 uart1set)
 //返回值:0,执行成功;其他,执行失败(这里不会返回0了)
 u8 Ublox_Cfg_Prt(u32 baudrate)
 {
-	_ublox_cfg_prt *cfg_prt=(_ublox_cfg_prt *)USART2_TX_Buff;
+    void *vBuff = NULL;
+    vBuff = pvPortMalloc(sizeof(_ublox_cfg_prt));
+    if(vBuff == NULL)
+	{
+	    return 0;
+	}
+	_ublox_cfg_prt *cfg_prt = (_ublox_cfg_prt *)vBuff;
 	cfg_prt->header=0X62B5;		//cfg header
 	cfg_prt->id=0X0006;			//cfg prt id
 	cfg_prt->dlength=20;		//数据区长度为20个字节.	
@@ -339,9 +435,14 @@ u8 Ublox_Cfg_Prt(u32 baudrate)
  	cfg_prt->reserved5=0; 		//保留字节,设置为0 
 	Ublox_CheckSum((u8*)(&cfg_prt->id),sizeof(_ublox_cfg_prt)-4,&cfg_prt->cka,&cfg_prt->ckb);
 	//while(DMA1_Channel7->CNDTR!=0);	//等待通道7传输完成   
-	USART3_SendData(USART2_TX_Buff,sizeof(_ublox_cfg_prt));	//通过dma发送出去
+	GPS_SendData(vBuff,sizeof(_ublox_cfg_prt));	//通过dma发送出去
 	Delay_ms(200);				//等待发送完成 
-	USART3_Init(baudrate);	//重新初始化串口2   
+	GPS_USART_INIT(baudrate);	//重新初始化串口
+	if(vBuff != NULL)
+	{
+	    vPortFree(vBuff);
+	    vBuff = NULL;
+	}
 	return Ublox_Cfg_Ack_Check();//这里不会反回0,因为UBLOX发回来的应答在串口重新初始化的时候已经被丢弃了.
 } 
 //配置UBLOX NEO-6的时钟脉冲输出
@@ -351,7 +452,13 @@ u8 Ublox_Cfg_Prt(u32 baudrate)
 //返回值:0,发送成功;其他,发送失败.
 u8 Ublox_Cfg_Tp(u32 interval,u32 length,signed char status)
 {
-	_ublox_cfg_tp *cfg_tp=(_ublox_cfg_tp *)USART2_TX_Buff;
+    void *vBuff = NULL;
+    vBuff = pvPortMalloc(sizeof(_ublox_cfg_tp));
+    if(vBuff == NULL)
+	{
+	    return 0;
+	}
+	_ublox_cfg_tp *cfg_tp=(_ublox_cfg_tp *)vBuff;
 	cfg_tp->header=0X62B5;		//cfg header
 	cfg_tp->id=0X0706;			//cfg tp id
 	cfg_tp->dlength=20;			//数据区长度为20个字节.
@@ -366,7 +473,12 @@ u8 Ublox_Cfg_Tp(u32 interval,u32 length,signed char status)
 	cfg_tp->userdelay=0;    	//用户延时为0ns
 	Ublox_CheckSum((u8*)(&cfg_tp->id),sizeof(_ublox_cfg_tp)-4,&cfg_tp->cka,&cfg_tp->ckb);
 	//while(DMA1_Channel7->CNDTR!=0);	//等待通道7传输完成   
-	USART2_SendData(USART2_TX_Buff,sizeof(_ublox_cfg_tp));	//通过dma发送出去
+	GPS_SendData(vBuff,sizeof(_ublox_cfg_tp));	//通过dma发送出去
+	if(vBuff != NULL)
+	{
+	    vPortFree(vBuff);
+	    vBuff = NULL;
+	}
 	return Ublox_Cfg_Ack_Check();
 }
 //配置UBLOX NEO-6的更新速率	    
@@ -375,7 +487,13 @@ u8 Ublox_Cfg_Tp(u32 interval,u32 length,signed char status)
 //返回值:0,发送成功;其他,发送失败.
 u8 Ublox_Cfg_Rate(u16 measrate,u8 reftime)
 {
-	_ublox_cfg_rate *cfg_rate=(_ublox_cfg_rate *)USART2_TX_Buff;
+    void *vBuff = NULL;
+    vBuff = pvPortMalloc(sizeof(_ublox_cfg_rate));
+    if(vBuff == NULL)
+	{
+	    return 0;
+	}
+	_ublox_cfg_rate *cfg_rate=(_ublox_cfg_rate *)vBuff;
  	if(measrate<200)return 1;	//小于200ms，直接退出
  	cfg_rate->header=0X62B5;	//cfg header
 	cfg_rate->id=0X0806;	 	//cfg rate id
@@ -385,7 +503,13 @@ u8 Ublox_Cfg_Rate(u16 measrate,u8 reftime)
 	cfg_rate->timeref=reftime; 	//参考时间为GPS时间
 	Ublox_CheckSum((u8*)(&cfg_rate->id),sizeof(_ublox_cfg_rate)-4,&cfg_rate->cka,&cfg_rate->ckb);
 	//while(DMA1_Channel7->CNDTR!=0);	//等待通道7传输完成   
-	USART2_SendData(USART2_TX_Buff,sizeof(_ublox_cfg_rate));//通过dma发送出去
+	GPS_SendData(vBuff, sizeof(_ublox_cfg_rate));//通过dma发送出去
+	if(vBuff != NULL)
+	{
+	    vPortFree(vBuff);
+	    vBuff = NULL;
+	}
 	return Ublox_Cfg_Ack_Check();
 }
+#endif
 

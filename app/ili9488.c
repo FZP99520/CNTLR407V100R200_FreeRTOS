@@ -88,6 +88,7 @@ void LCD_Init(void)
     LCD_WR_DATA(0x0B);
     LCD_WR_DATA(0x0A);
     LCD_WR_DATA(0x33);
+    
     LCD_WR_DATA(0x37);
     LCD_WR_DATA(0x0F);
 

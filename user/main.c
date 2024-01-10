@@ -11,6 +11,7 @@
 #include "flash.h"
 #include "arm_math.h"
 #include "ANO_DT.h"
+#include "gps.h"
 
 #include "FreeRTOS.h"
 #include "task.h"
@@ -253,6 +254,13 @@ void Start_Task(void * pvParameters)
     stTaskCreateParams.uxPriority = 4;
     //FR_OS_TaskCreate(&hDisplayTask, stTaskCreateParams);
 
+    stTaskCreateParams.TaskCode = Gps_Task;
+    stTaskCreateParams.pcName = "Gps_Task";
+    stTaskCreateParams.usStackDepth = 128;
+    stTaskCreateParams.pvParameters = NULL;
+    stTaskCreateParams.uxPriority = 4;
+    FR_OS_TaskCreate(&hGps_Task, stTaskCreateParams);
+
 //    stTaskCreateParams.TaskCode = I2C1_DataHandle_Task;
 //    stTaskCreateParams.pcName = "i2c1_task";
 //    stTaskCreateParams.usStackDepth = 128;
@@ -271,11 +279,12 @@ void Disp_Task(void * pvParameters)
     BaseType_t xRet = pdFAIL;
 
     FR_OS_MUTEX_LOCK(hDispMutex);
-    Custom_UI_Demo();
-    Customer_Top_Layer();
+    //Custom_UI_Demo();
+    //Customer_Top_Layer();
     //setup_scr_src_main(&guider_ui);
+    dispout_gui_setup_demo();
+    dispout_gui_demo_top_layer();
     FR_OS_MUTEX_UNLOCK(hDispMutex);
-    
     while(pdTRUE)
     {
         FR_OS_MUTEX_LOCK(hDispMutex);

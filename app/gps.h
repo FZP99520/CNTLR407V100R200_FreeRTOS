@@ -1,6 +1,10 @@
 #ifndef __GPS_H
 #define __GPS_H	 
 #include "stm32f4xx.h"  
+#include "FR_OS.h"
+
+#define GPS_MESSAGE_BUFF_SIZE 256
+
 //GPS NMEA-0183协议重要参数结构体定义 
 //卫星信息
 __packed typedef struct  
@@ -41,6 +45,9 @@ __packed typedef struct
 	int altitude;			 	//海拔高度,放大了10倍,实际除以10.单位:0.1m	 
 	u16 speed;					//地面速率,放大了1000倍,实际除以10.单位:0.001公里/小时	 
 	u16 speed_angle;    //航向角，放大10倍
+
+	u8 u8rx_ok;
+	u8 u8rx_len;
 }nmea_msg; 
 //////////////////////////////////////////////////////////////////////////////////////////////////// 	
 //UBLOX NEO-6M 配置(清除,保存,加载等)结构体
@@ -145,8 +152,14 @@ u8 Ublox_Cfg_Prt(u32 baudrate);
 u8 Ublox_Cfg_Tp(u32 interval,u32 length,signed char status);
 u8 Ublox_Cfg_Rate(u16 measrate,u8 reftime);
 
-void GPS_Init(void);
+void Gps_Task(void * pvParameters);
+
+u8 GPS_Init(void);
 void GPS_Show(void);
-extern u8 gps_buff[128];
+
+extern u8 pu8GpsMsgBuff[GPS_MESSAGE_BUFF_SIZE];
 extern nmea_msg gps_data;
+
+extern TaskHandle_t hGps_Task;
+
 #endif 

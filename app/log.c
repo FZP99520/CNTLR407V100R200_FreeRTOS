@@ -3,7 +3,7 @@
 
 #define LOG_BUFFER_MAX_NUM 8
 #define log_send(pdata,len) USART1_SendData(pdata,len)
-#define DEBUG
+//#define DEBUG
 
 
 static u8 _pu8Buff[LOG_BUFFER_MAX_NUM][128];

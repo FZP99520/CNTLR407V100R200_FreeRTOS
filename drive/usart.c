@@ -8,6 +8,8 @@
 #include "gps.h"
 #include "log.h"
 #include "ANO_DT.h"
+#include "dispout.h"
+
 
 #include <stdlib.h>
 #include <string.h>
@@ -90,11 +92,18 @@ void USART1_Receive_Data_Task(void *pvParameters)
         {
             if(xReturn == pdPASS)
             {
-#if (ANO_DT_MODE_IS_MASTER == 0)
+#if 0 //(ANO_DT_MODE_IS_MASTER == 0)
                 ST_ANO_DT_RECEIVE_DATA stAnoDt_ReceiveData;
                 stAnoDt_ReceiveData.pu8Buff = stUsartData.pu8DataAddr;
                 stAnoDt_ReceiveData.u8len   = stUsartData.u8len;
                 FR_OS_QueueSend(hAnoDtReceive_Queue, &stAnoDt_ReceiveData, 0);
+#endif
+#if 1 //give data to gps
+                memset(pu8GpsMsgBuff, 0, GPS_MESSAGE_BUFF_SIZE);
+                memcpy(pu8GpsMsgBuff, stUsartData.pu8DataAddr, stUsartData.u8len);
+                gps_data.u8rx_ok = 1;
+                gps_data.u8rx_len = stUsartData.u8len;
+                xTaskNotify(hGps_Task, 1, eSetValueWithOverwrite);
 #endif
             }
         }

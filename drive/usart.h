@@ -15,7 +15,7 @@
 #define USART2_ENABLE   (0)
 #define USART3_ENABLE   (1)
 
-#define USART1_BAUDRATE (115200)
+#define USART1_BAUDRATE (9600)
 #define USART2_BAUDRATE (115200)
 #define USART3_BAUDRATE (115200)
 
@@ -23,7 +23,7 @@
 #define BIT(x) 1<<x
 #endif
 
-#define USART1_BUFF_SIZE    64
+#define USART1_BUFF_SIZE    256
 #define USART2_BUFF_SIZE    64
 #define USART3_BUFF_SIZE    64
 
